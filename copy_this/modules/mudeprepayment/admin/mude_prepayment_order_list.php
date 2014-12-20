@@ -19,59 +19,13 @@
  */
 
 
-class mude_prepayment_Order_List extends Order_List
+class mude_prepayment_order_list extends mude_prepayment_order_list_parent
 {
-     /**
-     * Executes parent method parent::render() and returns name of template
-     * file "order_list.tpl".
-     *
-     * @return string
-     */
-    public function render()
-    {
-        parent::render();
-
-        $aFolders = $this->getConfig()->getConfigParam( 'aOrderfolder' );
-        $sFolder  = oxConfig::getParameter( "folder" );
-        // first display new orders
-        if ( !$sFolder && is_array( $aFolders )) {
-            $aNames = array_keys( $aFolders );
-            $sFolder = $aNames[0];
-        }
-
-        $aSearch    = array( 'oxorderarticles' => 'ARTID', 'oxpayments' => 'PAYMENT');
-        $sSearch    = oxConfig::getParameter( "addsearch" );
-        $sSearchfld = oxConfig::getParameter( "addsearchfld" );
-
-        $this->_aViewData["folder"]       = $sFolder ? $sFolder : -1;
-        $this->_aViewData["addsearchfld"] = $sSearchfld ? $sSearchfld : -1;
-        $this->_aViewData["asearch"]      = $aSearch;
-        $this->_aViewData["addsearch"]    = $sSearch;
-        $this->_aViewData["afolder"]      = $aFolders;
-
-        return "mude_prepayment_order_list.tpl";
-    }
-
-    /**
-     * Adding folder check
-     *
-     * @param array  $aWhere  SQL condition array
-     * @param string $sqlFull SQL query string
-     *
-     * @return $sQ
-     */
-    protected function _prepareWhereQuery( $aWhere, $sqlFull )
-    {
-        $sSql = parent::_prepareWhereQuery( $aWhere, $sqlFull );
-
-        $sSql .= " AND oxpaymenttype = 'oxidpayadvance' AND oxpaid = '0000-00-00 00:00:00' AND OXSTORNO = 0";
-
-        return $sSql;
-    }
+    
 
     public function sendReminder()
     {
-        $soxId  = oxConfig::getParameter( "oxid");
+        $soxId  = $this->getConfig()->getRequestParameter( "oxid");
 
         $oOrder = oxNew( "oxorder" );
         if ( $oOrder->load( $soxId ) ) {
@@ -99,14 +53,14 @@ class mude_prepayment_Order_List extends Order_List
         $oEmail->setFrom( $oShop->oxshops__oxorderemail->value, $oShop->oxshops__oxname->getRawValue() );
         $oEmail->setSmtp( $oShop );
 
-     /*   $aParams = oxConfig::getParameter( "editval" );
+     /*   $aParams = $this->getConfig()->getParameter( "editval" );
         $sContent = isset( $aParams['mudereorder__oxlongdesc'] ) ? stripslashes( $aParams['mudereorder__oxlongdesc'] ) : '';
         if ( $sContent ) {
             $sContent = oxUtilsView::getInstance()->parseThroughSmarty( $sContent, $oMudeReorder->getId() );
         }
 		*/
 
-		$oLang = oxLang::getInstance();
+		$oLang = oxRegistry::getLang();
 		$oCur = $this->getConfig()->getActShopCurrencyObject();
 
 
@@ -125,7 +79,7 @@ class mude_prepayment_Order_List extends Order_List
     		$sSum = $oLang->formatCurrency( $oOrder->oxorder__oxtotalbrutsum->value, $oCur );
 
 
-        $oSmarty = oxUtilsView::getInstance()->getSmarty();
+        $oSmarty = oxRegistry::get("oxUtilsView")->getSmarty();
         $oSmarty->assign( "charset", $oLang->translateString("charset"));
         $oSmarty->assign( "shop", $oShop );
         $oSmarty->assign( "oViewConf", oxNew( 'oxViewConfig' ) );
@@ -138,7 +92,7 @@ class mude_prepayment_Order_List extends Order_List
 
         //$oEmail->setBody( $sContent );
         $oEmail->setBody( $oSmarty->fetch("email_mudeprepayment_customer.tpl", false));  
-        $sSubject = oxLang::getInstance()->translateString("EMAIL_MUDEPREPAYMENT_SUBJECT");
+        $sSubject = oxRegistry::getLang()->translateString("EMAIL_MUDEPREPAYMENT_SUBJECT");
         $oEmail->setSubject( $sSubject);
         $oEmail->setRecipient( $sMail, $sMail );
         $oEmail->setReplyTo( $oShop->oxshops__oxorderemail->value, $oShop->oxshops__oxname->getRawValue() );
